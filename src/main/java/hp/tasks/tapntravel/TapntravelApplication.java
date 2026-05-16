@@ -7,7 +7,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.batch.autoconfigure.BatchProperties;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication

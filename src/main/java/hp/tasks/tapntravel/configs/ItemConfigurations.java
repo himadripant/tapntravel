@@ -33,7 +33,7 @@ public class ItemConfigurations {
                 .name("tapItemReader")
                 .resource(new ClassPathResource("taps.csv"))
                 .delimited()
-                .names("timestamp", "tapType", "stopId", "companyId", "busId", "pan")
+                .names("id", "timestamp", "tapType", "stopId", "companyId", "busId", "pan")
                 .linesToSkip(1)
                 .fieldSetMapper(fieldSetMapper)
                 .build();
