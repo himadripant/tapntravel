@@ -128,7 +128,7 @@ public class IngestService {
 
     private Tap mapToTapEntityForTapOn(TapFromFile tap) {
         return new Tap(
-                tap.pan(), tap.busId(), tap.companyId(), stopRepository.getReferenceById(tap.stopId()), tap.timestamp()
+                tap.pan(), tap.busId(), tap.companyId(), stopRepository.findById(tap.stopId()).get(), tap.timestamp()
         );
     }
 

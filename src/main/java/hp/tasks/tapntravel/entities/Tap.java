@@ -134,13 +134,14 @@ public class Tap {
         return new ToStringBuilder(this)
                 .append("id", id)
                 .append("pan",
-                        StringUtils.left(pan, 6) + "..." + StringUtils.right(busId, 4))
+                        StringUtils.left(pan, 6) + "..." + StringUtils.right(pan, 3))
                 .append("busId", busId)
                 .append("busCompanyId", busCompanyId)
                 .append("beginStop", beginStop)
                 .append("endStop", endStop)
                 .append("beginDateTime", beginDateTime)
                 .append("endDateTime", endDateTime)
+                .append("cost", "$" + cost)
                 .toString();
     }
 }

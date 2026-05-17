@@ -21,16 +21,32 @@ public class Stop {
     private Integer zone;
 
     public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
 
     public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
 
     public Integer getBusCompanyId() { return busCompanyId; }
-    public void setBusCompanyId(Integer busCompanyId) { this.busCompanyId = busCompanyId; }
 
     public Integer getZone() { return zone; }
-    public void setZone(Integer zone) { this.zone = zone; }
+
+    public Stop setId(Integer id) {
+        this.id = id;
+        return this;
+    }
+
+    public Stop setName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public Stop setBusCompanyId(Integer busCompanyId) {
+        this.busCompanyId = busCompanyId;
+        return this;
+    }
+
+    public Stop setZone(Integer zone) {
+        this.zone = zone;
+        return this;
+    }
 
     @Override
     public String toString() {

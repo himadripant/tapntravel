@@ -31,18 +31,18 @@ public class FareCalculationService {
     }
 
     @PostConstruct
-    void init() {
+    public void init() {
         this.busCompanyZonesPrices = zoneFareRepository.findAll()
                 .stream()
                 .collect(Collectors.toMap(this::mapToBusZoneFare, ZoneFare::getPrice));
-        logger.debug("Zone Fare Prices: {}", this.busCompanyZonesPrices);
+        logger.info("Zone Fare Prices: {}", this.busCompanyZonesPrices);
 
         this.busCompanyZonesPrices
                 .forEach((key, price) -> {
                     addBusCompanyZonePrice(new BusCompanyZone(key.busCompanyId(), key.zoneFrom()), price);
                     addBusCompanyZonePrice(new BusCompanyZone(key.busCompanyId(), key.zoneTo()), price);
                 });
-        logger.debug("Zone Fare Max Prices: {}", this.busCompanyZonesMaxPrices);
+        logger.info("Zone Fare Max Prices: {}", this.busCompanyZonesMaxPrices);
     }
 
     public BigDecimal calculateTripFares(Integer busCompanyId, Stop stopFrom, Stop stopTo) {

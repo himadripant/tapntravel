@@ -23,7 +23,7 @@ public record TapFromFile(
                 .append("stopId", stopId)
                 .append("companyId", companyId)
                 .append("busId", busId)
-                .append("pan", StringUtils.left(pan, 6) + "..." + StringUtils.right(pan, 4))
+                .append("pan", StringUtils.left(pan, 6) + "..." + StringUtils.right(pan, 3))
                 .toString();
     }
 }
