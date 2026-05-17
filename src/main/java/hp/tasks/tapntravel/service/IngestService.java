@@ -89,14 +89,17 @@ public class IngestService {
 
     @Transactional
     void persistToDb(List<TapFromFile> tapFromFileList) {
-        final var allTaps = tapFromFileList.stream()
-                .map(this::mapToTapEntityForTapOff)
-                .toList();
+
         final var tapOns = persistTapOnsToDb(tapFromFileList);
-//        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
+        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
 
         final var tapOffs = persistTapOffsToDb(tapFromFileList);
         logger.info("Persisting tapping-off data to DB [{}]", tapOffs);
+
+        final var tapOnsWithoutTapOffs = persistTapOnsMaxPriceToDb(tapOns.stream()
+                .filter(e -> !tapOffs.contains(e))
+                .toList());
+        logger.info("Persisted tapping-on without tapping-off data to DB [{}]", tapOnsWithoutTapOffs);
     }
 
     List<Tap> persistTapOnsToDb(List<TapFromFile> taps) {
@@ -104,7 +107,6 @@ public class IngestService {
                 .filter(tapFromFile -> tapFromFile.tapType() == TapType.ON)
                 .map(this::mapToTapEntityForTapOn)
                 .toList();
-//        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
         return tapRepository.saveAllAndFlush(tapOns);
     }
 
@@ -116,8 +118,12 @@ public class IngestService {
         return tapRepository.saveAllAndFlush(tapOffs);
     }
 
-    void persistTapOnsMaxPriceToDb(List<Tap> taps) {
-
+    List<Tap> persistTapOnsMaxPriceToDb(List<Tap> taps) {
+        return tapRepository.saveAllAndFlush(taps.stream().map(tap ->
+                tap.setCost(fareCalculationService.calculateTripFares(
+                        tap.getBusCompanyId(), tap.getBeginStop(), null
+                ))
+        ).toList());
     }
 
     private Tap mapToTapEntityForTapOn(TapFromFile tap) {
@@ -136,8 +142,8 @@ public class IngestService {
                 .setEndDateTime(tap.timestamp())
                 .setCost(fareCalculationService.calculateTripFares(
                         tapEntity.getBusCompanyId(),
-                        tapEntity.getBeginStop().getZone(),
-                        endStop.getZone()
+                        tapEntity.getBeginStop(),
+                        endStop
                 ));
         return tapEntity;
     }

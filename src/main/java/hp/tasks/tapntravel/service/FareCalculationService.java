@@ -1,5 +1,6 @@
 package hp.tasks.tapntravel.service;
 
+import hp.tasks.tapntravel.entities.Stop;
 import hp.tasks.tapntravel.entities.ZoneFare;
 import hp.tasks.tapntravel.models.BusCompanyZone;
 import hp.tasks.tapntravel.models.BusCompanyZones;
@@ -23,7 +24,7 @@ public class FareCalculationService {
 
     private Map<BusCompanyZones, BigDecimal> busCompanyZonesPrices;
 
-    private Map<BusCompanyZone, BigDecimal> busCompanyZonesMaxPrices = new HashMap<>();
+    private final Map<BusCompanyZone, BigDecimal> busCompanyZonesMaxPrices = new HashMap<>();
 
     public FareCalculationService(ZoneFareRepository zoneFareRepository) {
         this.zoneFareRepository = zoneFareRepository;
@@ -44,19 +45,21 @@ public class FareCalculationService {
         logger.debug("Zone Fare Max Prices: {}", this.busCompanyZonesMaxPrices);
     }
 
-    public BigDecimal calculateTripFares(Integer busCompanyId, Integer zoneFrom, Integer zoneTo) {
-        if (zoneTo != null) {
-            return busCompanyZonesPrices.computeIfAbsent(new BusCompanyZones(busCompanyId, zoneFrom, zoneTo),
-                    _ -> BigDecimal.ZERO);
+    public BigDecimal calculateTripFares(Integer busCompanyId, Stop stopFrom, Stop stopTo) {
+        if (stopTo == stopFrom) {
+            return BigDecimal.ZERO;
         }
-        else  {
-            return busCompanyZonesMaxPrices.computeIfAbsent(new BusCompanyZone(busCompanyId, zoneFrom),
+        if (stopTo != null) {
+            return busCompanyZonesPrices.computeIfAbsent(new BusCompanyZones(busCompanyId, stopFrom.getZone(), stopTo.getZone()),
+                    _ -> BigDecimal.ZERO);
+        } else {
+            return busCompanyZonesMaxPrices.computeIfAbsent(new BusCompanyZone(busCompanyId, stopFrom.getZone()),
                     _ -> BigDecimal.ZERO);
         }
     }
 
     private BusCompanyZones mapToBusZoneFare(ZoneFare zoneFare) {
-        return new BusCompanyZones(zoneFare.getBusCompanyId(), zoneFare.getZoneFrom(),  zoneFare.getZoneTo());
+        return new BusCompanyZones(zoneFare.getBusCompanyId(), zoneFare.getZoneFrom(), zoneFare.getZoneTo());
     }
 
     private void addBusCompanyZonePrice(BusCompanyZone busCompanyZone, BigDecimal price) {
