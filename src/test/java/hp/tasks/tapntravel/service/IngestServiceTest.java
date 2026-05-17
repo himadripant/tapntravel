@@ -2,7 +2,6 @@ package hp.tasks.tapntravel.service;
 
 import hp.tasks.tapntravel.entities.Tap;
 import hp.tasks.tapntravel.repositories.TapRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,14 +25,15 @@ class IngestServiceTest {
     private IngestService ingestService;
 
     @Autowired
+    private FareCalculationService fareCalculationService;
+
+    @Autowired
     private TapRepository tapRepository;
 
     @BeforeEach
     public void setUp() {
-    }
-
-    @AfterEach
-    void tearDown() {
+        ingestService.init();
+        fareCalculationService.init();
     }
 
     @Test
@@ -42,9 +42,9 @@ class IngestServiceTest {
         var taps = tapRepository.findAll();
         Assertions.assertAll(
                 () -> Assertions.assertNotNull(taps),
-                () -> Assertions.assertEquals(5, taps.size()),
+                () -> Assertions.assertEquals(6, taps.size()),
                 () -> assertThat(getPansStartingWith(taps, "5500005"), hasSize(3)),
-                () -> assertThat(getPansStartingWith(taps, "4444333"), hasSize(1)),
+                () -> assertThat(getPansStartingWith(taps, "4444333"), hasSize(2)),
                 () -> assertThat(getPansStartingWith(taps, "4111111"), hasSize(1))
         );
 
@@ -55,9 +55,5 @@ class IngestServiceTest {
                 .map(Tap::getPan)
                 .filter(str -> str.startsWith(startingWith))
                 .toList();
-    }
-
-    @Test
-    void persistToDb() {
     }
 }

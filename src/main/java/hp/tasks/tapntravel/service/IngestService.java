@@ -1,10 +1,12 @@
 package hp.tasks.tapntravel.service;
 
+import hp.tasks.tapntravel.entities.Stop;
 import hp.tasks.tapntravel.entities.Tap;
 import hp.tasks.tapntravel.models.TapFromFile;
 import hp.tasks.tapntravel.models.TapType;
 import hp.tasks.tapntravel.repositories.StopRepository;
 import hp.tasks.tapntravel.repositories.TapRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +17,8 @@ import org.springframework.util.ResourceUtils;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Gatherers;
 import java.util.stream.Stream;
 
@@ -35,6 +36,7 @@ public class IngestService {
     private final TapRepository tapRepository;
     private final StopRepository stopRepository;
     private final FareCalculationService fareCalculationService;
+    private Map<Integer, Stop> stopCache = new HashMap<>();
 
     public IngestService(
             @Value("${app.input-file-path}") String inputFilePath,
@@ -45,6 +47,13 @@ public class IngestService {
         this.tapRepository = tapRepository;
         this.stopRepository = stopRepository;
         this.fareCalculationService = fareCalculationService;
+    }
+
+    @PostConstruct
+    public void init() {
+        this.stopCache = stopRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(Stop::getId, stop -> stop));
     }
 
     public void ingestInputFile() throws FileNotFoundException {
@@ -89,46 +98,91 @@ public class IngestService {
 
     @Transactional
     void persistToDb(List<TapFromFile> tapFromFileList) {
-
-        final var tapOns = persistTapOnsToDb(tapFromFileList);
+        List<Tap> tapOnEntities1 = createTapOnEntities(tapFromFileList);
+        List<TapFromFile> tapOffsFromFile = tapOffsFromTapFromFileList(tapFromFileList);
+        List<Tap> tapOnEntities2 = findTapOffForTapOn(tapOnEntities1, tapOffsFromFile).stream()
+                .map(this::mapToTapEntityForTapOff)
+                .toList();
+        List<Tap> completedTaps = Stream.concat(tapOnEntities1.stream(), tapOnEntities2.stream()).toList();
+        var tapOns = tapRepository.saveAllAndFlush(completedTaps);
         logger.info("Persisted tapping-on data to DB [{}]", tapOns);
+        // *****
 
-        final var tapOffs = persistTapOffsToDb(tapFromFileList);
-        logger.info("Persisting tapping-off data to DB [{}]", tapOffs);
-
-        final var tapOnsWithoutTapOffs = persistTapOnsMaxPriceToDb(tapOns.stream()
-                .filter(e -> !tapOffs.contains(e))
-                .toList());
-        logger.info("Persisted tapping-on without tapping-off data to DB [{}]", tapOnsWithoutTapOffs);
+//        final var tapOns = persistTapOnsToDb(tapFromFileList);
+//        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
+//
+//        final var tapOffs = persistTapOffsToDb(tapFromFileList);
+//        logger.info("Persisting tapping-off data to DB [{}]", tapOffs);
+//
+//        final var tapOnsWithoutTapOffs = persistTapOnsMaxPriceToDb(tapOns.stream()
+//                .filter(e -> !tapOffs.contains(e))
+//                .toList());
+//        logger.info("Persisted tapping-on without tapping-off data to DB [{}]", tapOnsWithoutTapOffs);
     }
 
-    List<Tap> persistTapOnsToDb(List<TapFromFile> taps) {
-        final var tapOns = taps.stream()
+    List<Tap> createTapOnEntities(List<TapFromFile> taps) {
+        return taps.stream()
                 .filter(tapFromFile -> tapFromFile.tapType() == TapType.ON)
                 .map(this::mapToTapEntityForTapOn)
                 .toList();
-        return tapRepository.saveAllAndFlush(tapOns);
     }
 
-    List<Tap> persistTapOffsToDb(List<TapFromFile> tapFromFileList) {
-        final var tapOffs = tapFromFileList.stream()
+    List<TapFromFile> tapOffsFromTapFromFileList(List<TapFromFile> taps) {
+        return taps.stream()
                 .filter(tapFromFile -> tapFromFile.tapType() == TapType.OFF)
-                .map(this::mapToTapEntityForTapOff)
                 .toList();
-        return tapRepository.saveAllAndFlush(tapOffs);
     }
 
-    List<Tap> persistTapOnsMaxPriceToDb(List<Tap> taps) {
-        return tapRepository.saveAllAndFlush(taps.stream().map(tap ->
-                tap.setCost(fareCalculationService.calculateTripFares(
-                        tap.getBusCompanyId(), tap.getBeginStop(), null
-                ))
-        ).toList());
+    List<TapFromFile> findTapOffForTapOn(List<Tap> tapEntities, List<TapFromFile> tapOffs) {
+        for (Tap tapEntity : tapEntities) {
+            var tapOffOptional = tapOffs.stream()
+                    .filter(tapFromFile -> (Objects.equals(tapFromFile.pan(), tapEntity.getPan())) &&
+                            (Objects.equals(tapFromFile.busId(), tapEntity.getBusId())) &&
+                            (Objects.equals(tapFromFile.companyId(), tapEntity.getBusCompanyId())))
+                    .findFirst();
+            if (tapOffOptional.isPresent()) {
+                var tapOff = tapOffOptional.get();
+                var stop = stopCache.get(tapOff.stopId());
+                tapEntity.setEndStop(stop)
+                        .setEndDateTime(tapOff.timestamp())
+                        .setCost(fareCalculationService.calculateTripFares(
+                                tapEntity.getBusCompanyId(),
+                                tapEntity.getBeginStop(),
+                                stop));
+                return findTapOffForTapOn(tapEntities.stream().filter(e -> !e.equals(tapEntity)).toList(),
+                        tapOffs.stream().filter(e -> !e.equals(tapOff)).toList());
+            }
+        }
+        return tapOffs;
     }
+
+//    List<Tap> persistTapOnsToDb(List<TapFromFile> taps) {
+//        final var tapOns = taps.stream()
+//                .filter(tapFromFile -> tapFromFile.tapType() == TapType.ON)
+//                .map(this::mapToTapEntityForTapOn)
+//                .toList();
+//        return tapRepository.saveAllAndFlush(tapOns);
+//    }
+//
+//    List<Tap> persistTapOffsToDb(List<TapFromFile> tapFromFileList) {
+//        final var tapOffs = tapFromFileList.stream()
+//                .filter(tapFromFile -> tapFromFile.tapType() == TapType.OFF)
+//                .map(e -> this.mapToTapEntityForTapOff(e, tapFromFileList))
+//                .toList();
+//        return tapRepository.saveAllAndFlush(tapOffs);
+//    }
+//
+//    List<Tap> persistTapOnsMaxPriceToDb(List<Tap> taps) {
+//        return tapRepository.saveAllAndFlush(taps.stream().map(tap ->
+//                tap.setCost(fareCalculationService.calculateTripFares(
+//                        tap.getBusCompanyId(), tap.getBeginStop(), null
+//                ))
+//        ).toList());
+//    }
 
     private Tap mapToTapEntityForTapOn(TapFromFile tap) {
         return new Tap(
-                tap.pan(), tap.busId(), tap.companyId(), stopRepository.findById(tap.stopId()).get(), tap.timestamp()
+                tap.pan(), tap.busId(), tap.companyId(), stopCache.get(tap.stopId()), tap.timestamp()
         );
     }
 
@@ -137,7 +191,7 @@ public class IngestService {
                         tap.pan(), tap.busId(), tap.companyId()
                 )
                 .getFirst();
-        var endStop = stopRepository.findById(tap.stopId()).get();
+        var endStop = stopCache.get(tap.stopId());
         tapEntity.setEndStop(endStop)
                 .setEndDateTime(tap.timestamp())
                 .setCost(fareCalculationService.calculateTripFares(
@@ -147,4 +201,25 @@ public class IngestService {
                 ));
         return tapEntity;
     }
+
+    private Tap mapToTapEntityForTapOff(TapFromFile tap, Tap tapEntity) {
+        var endStop = stopCache.get(tap.stopId());
+        return tapEntity.setEndStop(endStop)
+                .setEndDateTime(tap.timestamp())
+                .setCost(fareCalculationService.calculateTripFares(
+                        tapEntity.getBusCompanyId(),
+                        tapEntity.getBeginStop(),
+                        endStop
+                ));
+    }
+
+//    private Tap findTapOnForTapOff(TapFromFile tap, List<TapFromFile> tapOffsFromFileList) {
+//        var tapOnFromFile = tapFromFileList.stream()
+//                .filter(tapFromFile ->
+//                        (tapFromFile.tapType() == TapType.ON) &&
+//                                (Objects.equals(tapFromFile.pan(), tap.pan())) &&
+//                                (Objects.equals(tapFromFile.busId(), tap.busId())) &&
+//                                (Objects.equals(tapFromFile.companyId(), tap.companyId())))
+//                .findFirst().get();
+//    }
 }
