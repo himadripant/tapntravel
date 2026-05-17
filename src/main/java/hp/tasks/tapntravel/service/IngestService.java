@@ -17,7 +17,6 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Gatherers;
 import java.util.stream.Stream;
 
@@ -90,13 +89,15 @@ public class IngestService {
                 .filter(tapFromFile -> tapFromFile.tapType() == TapType.ON)
                 .map(this::mapToTapEntityForTapOn)
                 .toList();
-        tapRepository.saveAllAndFlush(tapOns);
+        final var tapOnsSaved = tapRepository.saveAllAndFlush(tapOns);
+        logger.info("Persisting tapping-on data to DB [{}]", tapOnsSaved);
 
         final var tapOffs = tapFromFileList.stream()
                 .filter(tapFromFile -> tapFromFile.tapType() == TapType.OFF)
                 .map(this::mapToTapEntityForTapOff)
                 .toList();
         tapRepository.saveAllAndFlush(tapOffs);
+        logger.info("Persisting tapping-off data to DB [{}]", tapOffs);
     }
 
     private Tap mapToTapEntityForTapOn(TapFromFile tap) {
@@ -108,7 +109,8 @@ public class IngestService {
     private Tap mapToTapEntityForTapOff(TapFromFile tap) {
         final var tapEntity = tapRepository.findByPanAndBusIdAndBusCompanyId(
                         tap.pan(), tap.busId(), tap.companyId()
-                ).getFirst();
+                )
+                .getFirst();
         tapEntity.setEndStop(stopRepository.getReferenceById(tap.stopId()))
                 .setEndDateTime(tap.timestamp());
         return tapEntity;

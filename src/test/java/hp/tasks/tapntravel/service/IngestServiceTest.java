@@ -1,6 +1,6 @@
 package hp.tasks.tapntravel.service;
 
-import hp.tasks.tapntravel.repositories.StopRepository;
+import hp.tasks.tapntravel.entities.Tap;
 import hp.tasks.tapntravel.repositories.TapRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -12,6 +12,10 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.jdbc.Sql;
 
 import java.io.FileNotFoundException;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 @Profile("test")
 @Sql("classpath:data-init.sql")
@@ -24,9 +28,6 @@ class IngestServiceTest {
     @Autowired
     private TapRepository tapRepository;
 
-    @Autowired
-    private StopRepository stopRepository;
-
     @BeforeEach
     public void setUp() {
     }
@@ -37,11 +38,23 @@ class IngestServiceTest {
 
     @Test
     void ingestInputFile() throws FileNotFoundException {
-        var stops = stopRepository.findAll();
-        Assertions.assertNotNull(stops);
         ingestService.ingestInputFile();
         var taps = tapRepository.findAll();
-        Assertions.assertNotNull(taps);
+        Assertions.assertAll(
+                () -> Assertions.assertNotNull(taps),
+                () -> Assertions.assertEquals(5, taps.size()),
+                () -> assertThat(getPansStartingWith(taps, "5500005"), hasSize(3)),
+                () -> assertThat(getPansStartingWith(taps, "4444333"), hasSize(1)),
+                () -> assertThat(getPansStartingWith(taps, "4111111"), hasSize(1))
+        );
+
+    }
+
+    private List<String> getPansStartingWith(List<Tap> taps, String startingWith) {
+        return taps.stream()
+                .map(Tap::getPan)
+                .filter(str -> str.startsWith(startingWith))
+                .toList();
     }
 
     @Test

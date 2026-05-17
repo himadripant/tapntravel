@@ -1,9 +1,10 @@
 package hp.tasks.tapntravel.entities;
 
 import jakarta.persistence.*;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 @Entity
@@ -23,11 +24,11 @@ public class Tap {
     @Column(name = "bus_company_id", nullable = false)
     private Integer busCompanyId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne/*(fetch = FetchType.LAZY)*/
     @JoinColumn(name = "begin_stop_id", referencedColumnName = "id", nullable = false)
     private Stop beginStop;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne/*(fetch = FetchType.LAZY)*/
     @JoinColumn(name = "end_stop_id", referencedColumnName = "id")
     private Stop endStop;
 
@@ -113,5 +114,20 @@ public class Tap {
     public Tap setEndDateTime(ZonedDateTime endDateTime) {
         this.endDateTime = endDateTime;
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("id", id)
+                .append("pan",
+                        StringUtils.left(pan, 6) + "..." + StringUtils.right(busId, 4))
+                .append("busId", busId)
+                .append("busCompanyId", busCompanyId)
+                .append("beginStop", beginStop)
+                .append("endStop", endStop)
+                .append("beginDateTime", beginDateTime)
+                .append("endDateTime", endDateTime)
+                .toString();
     }
 }

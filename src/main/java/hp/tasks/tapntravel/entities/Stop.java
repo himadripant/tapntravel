@@ -1,6 +1,7 @@
 package hp.tasks.tapntravel.entities;
 
 import jakarta.persistence.*;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @Entity
 @Table(name = "stop")
@@ -30,4 +31,14 @@ public class Stop {
 
     public Integer getZone() { return zone; }
     public void setZone(Integer zone) { this.zone = zone; }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("id", id)
+                .append("name", name)
+                .append("busCompanyId", busCompanyId)
+                .append("zone", zone)
+                .toString();
+    }
 }
