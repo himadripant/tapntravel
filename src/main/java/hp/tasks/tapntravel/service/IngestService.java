@@ -33,15 +33,17 @@ public class IngestService {
     private final String inputFilePath;
     private final TapRepository tapRepository;
     private final StopRepository stopRepository;
+    private final FareCalculationService fareCalculationService;
 
     public IngestService(
             @Value("${app.input-file-path}") String inputFilePath,
             TapRepository tapRepository,
-            StopRepository stopRepository
+            StopRepository stopRepository, FareCalculationService fareCalculationService
     ) {
         this.inputFilePath = inputFilePath;
         this.tapRepository = tapRepository;
         this.stopRepository = stopRepository;
+        this.fareCalculationService = fareCalculationService;
     }
 
     public void ingestInputFile() throws FileNotFoundException {
@@ -112,7 +114,12 @@ public class IngestService {
                 )
                 .getFirst();
         tapEntity.setEndStop(stopRepository.getReferenceById(tap.stopId()))
-                .setEndDateTime(tap.timestamp());
+                .setEndDateTime(tap.timestamp())
+                .setCost(fareCalculationService.calculateTripFares(
+                        tapEntity.getBusCompanyId(),
+                        tapEntity.getBeginStop().getZone(),
+                        tapEntity.getEndStop().getZone()
+                ));
         return tapEntity;
     }
 }

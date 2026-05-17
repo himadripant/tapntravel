@@ -1,12 +1,12 @@
 package hp.tasks.tapntravel;
 
-import hp.tasks.tapntravel.service.ItemConfigurations;
+import hp.tasks.tapntravel.service.FareCalculationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-@SpringJUnitConfig(classes = ItemConfigurations.class)
+@SpringJUnitConfig(classes = FareCalculationService.class)
 class TapReaderTest {
 
     @BeforeEach

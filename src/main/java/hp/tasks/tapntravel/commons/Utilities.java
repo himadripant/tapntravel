@@ -1,15 +1,23 @@
 package hp.tasks.tapntravel.commons;
 
-import hp.tasks.tapntravel.entities.Tap;
-import hp.tasks.tapntravel.models.TapFromFile;
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 public class Utilities {
+
+    public static ZonedDateTime parseDateStringToZonedDateTime(String string) {
+        return LocalDate.parse(string.trim(), DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+                .atStartOfDay()
+                .atOffset(ZoneOffset.UTC)
+                .toZonedDateTime()
+                .truncatedTo(ChronoUnit.HOURS);
+    }
 
     public static ZonedDateTime parseStringToZonedDateTime(String string) {
         return LocalDateTime.parse(string.trim(), DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"))

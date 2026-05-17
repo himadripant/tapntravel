@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.ZonedDateTime;
 
@@ -37,6 +38,9 @@ public class Tap {
 
     @Column(name = "end_date_time")
     private ZonedDateTime endDateTime;
+
+    @Column(name = "cost", precision = 5, scale = 2)
+    private BigDecimal cost;
 
     public Tap() {
     }
@@ -113,6 +117,15 @@ public class Tap {
 
     public Tap setEndDateTime(ZonedDateTime endDateTime) {
         this.endDateTime = endDateTime;
+        return this;
+    }
+
+    public BigDecimal getCost() {
+        return cost;
+    }
+
+    public Tap setCost(BigDecimal cost) {
+        this.cost = cost;
         return this;
     }
 
