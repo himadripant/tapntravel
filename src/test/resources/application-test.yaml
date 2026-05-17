@@ -10,10 +10,14 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
 
 app:
   input-file-path: classpath:taps.csv
-  output-file-path: "src/test/resources/test-trips.csv"
+  output-file-path: classpath:trips.csv
 
 logging:
   level:

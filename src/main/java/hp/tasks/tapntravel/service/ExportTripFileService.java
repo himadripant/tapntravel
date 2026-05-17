@@ -35,7 +35,6 @@ public class ExportTripFileService {
             Files.createFile(path);
             try (CSVWriter writer = new CSVWriter(new FileWriter(path.toFile(), false))) {
                 writer.writeNext(new String[]{"Started", "Finished", "DurationSecs", "FromStopId", "ToStopId", "ChargeAmount", "CompanyId", "PAN", "Status"});
-
                 tapRepository.findAll().forEach(tap ->
                         writer.writeNext(new String[] {
                                 tap.getBeginDateTime().toString(),
@@ -54,6 +53,8 @@ public class ExportTripFileService {
             }
         } catch (IOException e) {
             logger.error("Trip file could not be created.. ", e);
+        } finally {
+            tapRepository.deleteAll();
         }
 
     }

@@ -1,6 +1,9 @@
 package hp.tasks.tapntravel;
 
+import hp.tasks.tapntravel.service.ExportTripFileService;
+import hp.tasks.tapntravel.service.IngestService;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,6 +15,11 @@ import static hp.tasks.tapntravel.commons.Utilities.parseDateStringToZonedDateTi
 
 @SpringBootApplication
 public class TapntravelApplication implements CommandLineRunner {
+	@Autowired
+	IngestService ingestService;
+
+	@Autowired
+	ExportTripFileService exportTripFileService;
 
 	static void main(String[] args) {
 		SpringApplication.run(TapntravelApplication.class, args);
@@ -22,5 +30,7 @@ public class TapntravelApplication implements CommandLineRunner {
 		var startOfDayAsString = args.length == 0 ? null : args[0];
 		var startOfDay = StringUtils.isBlank(startOfDayAsString) ?
 				LocalDate.now().atStartOfDay(ZoneOffset.UTC) : parseDateStringToZonedDateTime(args[0]);
+		ingestService.ingestInputFile();
+		exportTripFileService.exportTripFile();
 	}
 }

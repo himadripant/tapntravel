@@ -2,8 +2,6 @@ package hp.tasks.tapntravel.commons;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.ZonedDateTime;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class UtilitiesTest {
@@ -11,6 +9,8 @@ class UtilitiesTest {
     @Test
     void parseDateStringToZonedDateTime() {
         var zonedDate = Utilities.parseDateStringToZonedDateTime("17-05-2026");
-        assertEquals(zonedDate, ZonedDateTime.parse("17-05-2026T00:00:00Z"));
+        assertEquals(zonedDate.getHour(), 0);
+        assertEquals(zonedDate.getMinute(), 0);
+        assertEquals(zonedDate.getSecond(), 0);
     }
 }

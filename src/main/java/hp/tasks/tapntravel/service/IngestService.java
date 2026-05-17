@@ -6,7 +6,6 @@ import hp.tasks.tapntravel.models.TapFromFile;
 import hp.tasks.tapntravel.models.TapType;
 import hp.tasks.tapntravel.repositories.StopRepository;
 import hp.tasks.tapntravel.repositories.TapRepository;
-import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,14 +48,15 @@ public class IngestService {
         this.fareCalculationService = fareCalculationService;
     }
 
-    @PostConstruct
     public void init() {
         this.stopCache = stopRepository.findAll()
                 .stream()
                 .collect(Collectors.toMap(Stop::getId, stop -> stop));
+        logger.info("Ingest service started and cached stops: {}",  stopCache);
     }
 
     public void ingestInputFile() throws FileNotFoundException {
+        init();
         final var file = ResourceUtils.getFile(inputFilePath);
         logger.info("Reading input file [{}]", file.getAbsolutePath());
         try (Stream<String> stream = Files.lines(file.toPath())) {
@@ -98,8 +98,11 @@ public class IngestService {
 
     @Transactional
     void persistToDb(List<TapFromFile> tapFromFileList) {
+        // first creating Tap entity objects where status is tap-on
         List<Tap> tapOnEntities1 = createTapOnEntities(tapFromFileList);
+        // second, separating all `TapFromFile` objects into a list which were read from flat file
         List<TapFromFile> tapOffsFromFile = tapOffsFromTapFromFileList(tapFromFileList);
+        // now, these are all tap-on-off which were queried from the db (belonging to earlier chunk)
         List<Tap> tapOnEntities2 = findTapOffForTapOn(tapOnEntities1, tapOffsFromFile).stream()
                 .map(this::mapToTapEntityForTapOff)
                 .toList();

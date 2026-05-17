@@ -1,6 +1,7 @@
 package hp.tasks.tapntravel.service;
 
 import hp.tasks.tapntravel.entities.Tap;
+import hp.tasks.tapntravel.models.TripStatus;
 import hp.tasks.tapntravel.repositories.TapRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,13 +12,15 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.jdbc.Sql;
 
 import java.io.FileNotFoundException;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Profile("test")
-@Sql("classpath:data-init.sql")
+@Sql("classpath:data.sql")
 @SpringBootTest
 class IngestServiceTest {
 
@@ -42,11 +45,28 @@ class IngestServiceTest {
         var taps = tapRepository.findAll();
         Assertions.assertAll(
                 () -> Assertions.assertNotNull(taps),
-                () -> Assertions.assertEquals(6, taps.size()),
+                () -> assertEquals(6, taps.size()),
                 () -> assertThat(getPansStartingWith(taps, "5500005"), hasSize(3)),
                 () -> assertThat(getPansStartingWith(taps, "4444333"), hasSize(2)),
                 () -> assertThat(getPansStartingWith(taps, "4111111"), hasSize(1))
         );
+        taps.stream()
+                .filter(tap -> tap.getPan().startsWith("5500005"))
+                .filter(tap -> tap.getBeginDateTime().getHour() == 16 &&
+                        tap.getBeginDateTime().getMinute() > 30)
+                .findFirst()
+                .ifPresent(tap -> {
+                   assertEquals(TripStatus.COMPLETED.name(), tap.getStatus());
+                   assertEquals(new BigDecimal("5.00"), tap.getCost());
+                });
+
+
+        taps.stream()
+                .filter(tap -> tap.getPan().startsWith("41111111"))
+                .forEach(tap -> {
+                    assertEquals(TripStatus.COMPLETED.name(), tap.getStatus());
+                    assertEquals(new BigDecimal("5.00"), tap.getCost());
+                });
 
     }
 
