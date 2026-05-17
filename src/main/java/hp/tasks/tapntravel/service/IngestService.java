@@ -5,6 +5,7 @@ import hp.tasks.tapntravel.models.TapFromFile;
 import hp.tasks.tapntravel.models.TapType;
 import hp.tasks.tapntravel.repositories.StopRepository;
 import hp.tasks.tapntravel.repositories.TapRepository;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,20 +87,37 @@ public class IngestService {
         }
     }
 
+    @Transactional
     void persistToDb(List<TapFromFile> tapFromFileList) {
-        final var tapOns = tapFromFileList.stream()
+        final var allTaps = tapFromFileList.stream()
+                .map(this::mapToTapEntityForTapOff)
+                .toList();
+        final var tapOns = persistTapOnsToDb(tapFromFileList);
+//        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
+
+        final var tapOffs = persistTapOffsToDb(tapFromFileList);
+        logger.info("Persisting tapping-off data to DB [{}]", tapOffs);
+    }
+
+    List<Tap> persistTapOnsToDb(List<TapFromFile> taps) {
+        final var tapOns = taps.stream()
                 .filter(tapFromFile -> tapFromFile.tapType() == TapType.ON)
                 .map(this::mapToTapEntityForTapOn)
                 .toList();
-        final var tapOnsSaved = tapRepository.saveAllAndFlush(tapOns);
-        logger.info("Persisting tapping-on data to DB [{}]", tapOnsSaved);
+//        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
+        return tapRepository.saveAllAndFlush(tapOns);
+    }
 
+    List<Tap> persistTapOffsToDb(List<TapFromFile> tapFromFileList) {
         final var tapOffs = tapFromFileList.stream()
                 .filter(tapFromFile -> tapFromFile.tapType() == TapType.OFF)
                 .map(this::mapToTapEntityForTapOff)
                 .toList();
-        tapRepository.saveAllAndFlush(tapOffs);
-        logger.info("Persisting tapping-off data to DB [{}]", tapOffs);
+        return tapRepository.saveAllAndFlush(tapOffs);
+    }
+
+    void persistTapOnsMaxPriceToDb(List<Tap> taps) {
+
     }
 
     private Tap mapToTapEntityForTapOn(TapFromFile tap) {
@@ -113,12 +131,13 @@ public class IngestService {
                         tap.pan(), tap.busId(), tap.companyId()
                 )
                 .getFirst();
-        tapEntity.setEndStop(stopRepository.getReferenceById(tap.stopId()))
+        var endStop = stopRepository.findById(tap.stopId()).get();
+        tapEntity.setEndStop(endStop)
                 .setEndDateTime(tap.timestamp())
                 .setCost(fareCalculationService.calculateTripFares(
                         tapEntity.getBusCompanyId(),
                         tapEntity.getBeginStop().getZone(),
-                        tapEntity.getEndStop().getZone()
+                        endStop.getZone()
                 ));
         return tapEntity;
     }

@@ -25,11 +25,11 @@ public class Tap {
     @Column(name = "bus_company_id", nullable = false)
     private Integer busCompanyId;
 
-    @ManyToOne/*(fetch = FetchType.LAZY)*/
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "begin_stop_id", referencedColumnName = "id", nullable = false)
     private Stop beginStop;
 
-    @ManyToOne/*(fetch = FetchType.LAZY)*/
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "end_stop_id", referencedColumnName = "id")
     private Stop endStop;
 
