@@ -13,3 +13,8 @@ spring:
 
 app:
   input-file-path: classpath:taps.csv
+
+logging:
+  level:
+    hp.tasks.tapntravel: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

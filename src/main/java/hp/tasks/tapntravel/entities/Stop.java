@@ -1,7 +1,6 @@
 package hp.tasks.tapntravel.entities;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "stop")
@@ -20,9 +19,6 @@ public class Stop {
     @Column(name = "zone", nullable = false)
     private Integer zone;
 
-    @Column(name = "date_time", nullable = false)
-    private LocalDateTime dateTime;
-
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
@@ -34,7 +30,4 @@ public class Stop {
 
     public Integer getZone() { return zone; }
     public void setZone(Integer zone) { this.zone = zone; }
-
-    public LocalDateTime getDateTime() { return dateTime; }
-    public void setDateTime(LocalDateTime dateTime) { this.dateTime = dateTime; }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "tap")
@@ -27,33 +28,90 @@ public class Tap {
     private Stop beginStop;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "end_stop_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "end_stop_id", referencedColumnName = "id")
     private Stop endStop;
 
     @Column(name = "begin_date_time", nullable = false)
-    private LocalDateTime beginDateTime;
+    private ZonedDateTime beginDateTime;
 
-    @Column(name = "end_date_time", nullable = false)
-    private LocalDateTime endDateTime;
+    @Column(name = "end_date_time")
+    private ZonedDateTime endDateTime;
 
-    public BigInteger getId() { return id; }
-    public void setId(BigInteger id) { this.id = id; }
+    public Tap() {
+    }
 
-    public String getPan() { return pan; }
-    public void setPan(String pan) { this.pan = pan; }
+    public Tap(String pan, String busId, Integer busCompanyId, Stop beginStop, ZonedDateTime beginDateTime) {
+        this.pan = pan;
+        this.busId = busId;
+        this.busCompanyId = busCompanyId;
+        this.beginStop = beginStop;
+        this.beginDateTime = beginDateTime;
+    }
 
-    public Integer getBusCompanyId() { return busCompanyId; }
-    public void setBusCompanyId(Integer busCompanyId) { this.busCompanyId = busCompanyId; }
+    public BigInteger getId() {
+        return id;
+    }
 
-    public Stop getBeginStop() { return beginStop; }
-    public void setBeginStop(Stop stop) { this.beginStop = stop; }
+    public String getPan() {
+        return pan;
+    }
 
-    public Stop getEndStop() { return endStop; }
-    public void setEndStop(Stop stop) { this.endStop = stop; }
+    public Tap setPan(String pan) {
+        this.pan = pan;
+        return this;
+    }
 
-    public LocalDateTime getBeginDateTime() { return beginDateTime; }
-    public void setBeginDateTime(LocalDateTime dateTime) { this.beginDateTime = dateTime; }
+    public String getBusId() {
+        return busId;
+    }
 
-    public LocalDateTime getEndDateTime() { return endDateTime; }
-    public void setEndDateTime(LocalDateTime dateTime) { this.endDateTime = dateTime; }
+    public Tap setBusId(String busId) {
+        this.busId = busId;
+        return this;
+    }
+
+    public Integer getBusCompanyId() {
+        return busCompanyId;
+    }
+
+    public Tap setBusCompanyId(Integer busCompanyId) {
+        this.busCompanyId = busCompanyId;
+        return this;
+    }
+
+    public Stop getBeginStop() {
+        return beginStop;
+    }
+
+    public Tap setBeginStop(Stop beginStop) {
+        this.beginStop = beginStop;
+        return this;
+    }
+
+    public Stop getEndStop() {
+        return endStop;
+    }
+
+    public Tap setEndStop(Stop endStop) {
+        this.endStop = endStop;
+        return this;
+    }
+
+    public ZonedDateTime getBeginDateTime() {
+        return beginDateTime;
+    }
+
+    public Tap setBeginDateTime(ZonedDateTime beginDateTime) {
+        this.beginDateTime = beginDateTime;
+        return this;
+    }
+
+    public ZonedDateTime getEndDateTime() {
+        return endDateTime;
+    }
+
+    public Tap setEndDateTime(ZonedDateTime endDateTime) {
+        this.endDateTime = endDateTime;
+        return this;
+    }
 }
