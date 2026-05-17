@@ -4,8 +4,10 @@ import hp.tasks.tapntravel.entities.Stop;
 import hp.tasks.tapntravel.entities.ZoneFare;
 import hp.tasks.tapntravel.models.BusCompanyZone;
 import hp.tasks.tapntravel.models.BusCompanyZones;
+import hp.tasks.tapntravel.models.TripStatus;
 import hp.tasks.tapntravel.repositories.ZoneFareRepository;
 import jakarta.annotation.PostConstruct;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -45,16 +47,18 @@ public class FareCalculationService {
         logger.info("Zone Fare Max Prices: {}", this.busCompanyZonesMaxPrices);
     }
 
-    public BigDecimal calculateTripFares(Integer busCompanyId, Stop stopFrom, Stop stopTo) {
+    public Pair<TripStatus, BigDecimal> calculateTripFares(Integer busCompanyId, Stop stopFrom, Stop stopTo) {
         if (stopTo == stopFrom) {
-            return BigDecimal.ZERO;
+            return Pair.of(TripStatus.CANCELLED, BigDecimal.ZERO);
         }
         if (stopTo != null) {
-            return busCompanyZonesPrices.computeIfAbsent(new BusCompanyZones(busCompanyId, stopFrom.getZone(), stopTo.getZone()),
+            var cost = busCompanyZonesPrices.computeIfAbsent(new BusCompanyZones(busCompanyId, stopFrom.getZone(), stopTo.getZone()),
                     _ -> BigDecimal.ZERO);
+            return Pair.of(TripStatus.COMPLETED, cost);
         } else {
-            return busCompanyZonesMaxPrices.computeIfAbsent(new BusCompanyZone(busCompanyId, stopFrom.getZone()),
+            var cost = busCompanyZonesMaxPrices.computeIfAbsent(new BusCompanyZone(busCompanyId, stopFrom.getZone()),
                     _ -> BigDecimal.ZERO);
+            return Pair.of(TripStatus.INCOMPLETE, cost);
         }
     }
 

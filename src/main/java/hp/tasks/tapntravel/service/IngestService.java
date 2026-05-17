@@ -103,21 +103,11 @@ public class IngestService {
         List<Tap> tapOnEntities2 = findTapOffForTapOn(tapOnEntities1, tapOffsFromFile).stream()
                 .map(this::mapToTapEntityForTapOff)
                 .toList();
-        List<Tap> completedTaps = Stream.concat(tapOnEntities1.stream(), tapOnEntities2.stream()).toList();
+        List<Tap> completedTaps = Stream.concat(tapOnEntities1.stream(), tapOnEntities2.stream())
+                .map(this::fillStatusAndCost)
+                .toList();
         var tapOns = tapRepository.saveAllAndFlush(completedTaps);
         logger.info("Persisted tapping-on data to DB [{}]", tapOns);
-        // *****
-
-//        final var tapOns = persistTapOnsToDb(tapFromFileList);
-//        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
-//
-//        final var tapOffs = persistTapOffsToDb(tapFromFileList);
-//        logger.info("Persisting tapping-off data to DB [{}]", tapOffs);
-//
-//        final var tapOnsWithoutTapOffs = persistTapOnsMaxPriceToDb(tapOns.stream()
-//                .filter(e -> !tapOffs.contains(e))
-//                .toList());
-//        logger.info("Persisted tapping-on without tapping-off data to DB [{}]", tapOnsWithoutTapOffs);
     }
 
     List<Tap> createTapOnEntities(List<TapFromFile> taps) {
@@ -144,41 +134,13 @@ public class IngestService {
                 var tapOff = tapOffOptional.get();
                 var stop = stopCache.get(tapOff.stopId());
                 tapEntity.setEndStop(stop)
-                        .setEndDateTime(tapOff.timestamp())
-                        .setCost(fareCalculationService.calculateTripFares(
-                                tapEntity.getBusCompanyId(),
-                                tapEntity.getBeginStop(),
-                                stop));
+                        .setEndDateTime(tapOff.timestamp());
                 return findTapOffForTapOn(tapEntities.stream().filter(e -> !e.equals(tapEntity)).toList(),
                         tapOffs.stream().filter(e -> !e.equals(tapOff)).toList());
             }
         }
         return tapOffs;
     }
-
-//    List<Tap> persistTapOnsToDb(List<TapFromFile> taps) {
-//        final var tapOns = taps.stream()
-//                .filter(tapFromFile -> tapFromFile.tapType() == TapType.ON)
-//                .map(this::mapToTapEntityForTapOn)
-//                .toList();
-//        return tapRepository.saveAllAndFlush(tapOns);
-//    }
-//
-//    List<Tap> persistTapOffsToDb(List<TapFromFile> tapFromFileList) {
-//        final var tapOffs = tapFromFileList.stream()
-//                .filter(tapFromFile -> tapFromFile.tapType() == TapType.OFF)
-//                .map(e -> this.mapToTapEntityForTapOff(e, tapFromFileList))
-//                .toList();
-//        return tapRepository.saveAllAndFlush(tapOffs);
-//    }
-//
-//    List<Tap> persistTapOnsMaxPriceToDb(List<Tap> taps) {
-//        return tapRepository.saveAllAndFlush(taps.stream().map(tap ->
-//                tap.setCost(fareCalculationService.calculateTripFares(
-//                        tap.getBusCompanyId(), tap.getBeginStop(), null
-//                ))
-//        ).toList());
-//    }
 
     private Tap mapToTapEntityForTapOn(TapFromFile tap) {
         return new Tap(
@@ -191,35 +153,17 @@ public class IngestService {
                         tap.pan(), tap.busId(), tap.companyId()
                 )
                 .getFirst();
-        var endStop = stopCache.get(tap.stopId());
-        tapEntity.setEndStop(endStop)
-                .setEndDateTime(tap.timestamp())
-                .setCost(fareCalculationService.calculateTripFares(
-                        tapEntity.getBusCompanyId(),
-                        tapEntity.getBeginStop(),
-                        endStop
-                ));
-        return tapEntity;
+        return tapEntity.setEndStop(stopCache.get(tap.stopId()))
+                .setEndDateTime(tap.timestamp());
     }
 
-    private Tap mapToTapEntityForTapOff(TapFromFile tap, Tap tapEntity) {
-        var endStop = stopCache.get(tap.stopId());
-        return tapEntity.setEndStop(endStop)
-                .setEndDateTime(tap.timestamp())
-                .setCost(fareCalculationService.calculateTripFares(
-                        tapEntity.getBusCompanyId(),
-                        tapEntity.getBeginStop(),
-                        endStop
-                ));
+    private Tap fillStatusAndCost(Tap tap) {
+        var statusAndCost = fareCalculationService.calculateTripFares(
+                tap.getBusCompanyId(),
+                tap.getBeginStop(),
+                tap.getEndStop()
+        );
+        return tap.setStatus(statusAndCost.getKey())
+                .setCost(statusAndCost.getValue());
     }
-
-//    private Tap findTapOnForTapOff(TapFromFile tap, List<TapFromFile> tapOffsFromFileList) {
-//        var tapOnFromFile = tapFromFileList.stream()
-//                .filter(tapFromFile ->
-//                        (tapFromFile.tapType() == TapType.ON) &&
-//                                (Objects.equals(tapFromFile.pan(), tap.pan())) &&
-//                                (Objects.equals(tapFromFile.busId(), tap.busId())) &&
-//                                (Objects.equals(tapFromFile.companyId(), tap.companyId())))
-//                .findFirst().get();
-//    }
 }

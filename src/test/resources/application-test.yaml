@@ -13,7 +13,7 @@ spring:
 
 app:
   input-file-path: classpath:taps.csv
-  output-file-path: classpath:trips.csv
+  output-file-path: "src/test/resources/test-trips.csv"
 
 logging:
   level:

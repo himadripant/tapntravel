@@ -1,5 +1,6 @@
 package hp.tasks.tapntravel.entities;
 
+import hp.tasks.tapntravel.models.TripStatus;
 import jakarta.persistence.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -16,7 +17,7 @@ public class Tap {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private BigInteger id;
 
-    @Column(name = "PAN", columnDefinition = "char(16)", nullable = false)
+    @Column(name = "pan", columnDefinition = "char(16)", nullable = false)
     private String pan;
 
     @Column(name = "bus_id", columnDefinition = "varchar(8)", nullable = false)
@@ -41,6 +42,9 @@ public class Tap {
 
     @Column(name = "cost", precision = 5, scale = 2)
     private BigDecimal cost;
+
+    @Column(name = "status")
+    private String status;
 
     public Tap() {
     }
@@ -126,6 +130,20 @@ public class Tap {
 
     public Tap setCost(BigDecimal cost) {
         this.cost = cost;
+        return this;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public Tap setStatus(TripStatus status) {
+        this.status = status.name();
+        return this;
+    }
+
+    public Tap setStatus(String status) {
+        this.status = status;
         return this;
     }
 
