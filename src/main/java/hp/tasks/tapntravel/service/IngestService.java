@@ -3,6 +3,7 @@ package hp.tasks.tapntravel.service;
 import hp.tasks.tapntravel.entities.Stop;
 import hp.tasks.tapntravel.entities.Tap;
 import hp.tasks.tapntravel.models.TapFromFile;
+import hp.tasks.tapntravel.models.TapIdentifierKey;
 import hp.tasks.tapntravel.models.TapType;
 import hp.tasks.tapntravel.repositories.StopRepository;
 import hp.tasks.tapntravel.repositories.TapRepository;
@@ -52,7 +53,7 @@ public class IngestService {
         this.stopCache = stopRepository.findAll()
                 .stream()
                 .collect(Collectors.toMap(Stop::getId, stop -> stop));
-        logger.info("Ingest service started and cached stops: {}",  stopCache);
+        logger.info("Ingest service started and cached stops: {}", stopCache);
     }
 
     public void ingestInputFile() throws FileNotFoundException {
@@ -98,66 +99,64 @@ public class IngestService {
 
     @Transactional
     void persistToDb(List<TapFromFile> tapFromFileList) {
-        // first creating Tap entity objects where status is tap-on
-        List<Tap> tapOnEntities1 = createTapOnEntities(tapFromFileList);
-        // second, separating all `TapFromFile` objects into a list which were read from flat file
-        List<TapFromFile> tapOffsFromFile = tapOffsFromTapFromFileList(tapFromFileList);
-        // now, these are all tap-on-off which were queried from the db (belonging to earlier chunk)
-        List<Tap> tapOnEntities2 = findTapOffForTapOn(tapOnEntities1, tapOffsFromFile).stream()
-                .map(this::mapToTapEntityForTapOff)
-                .toList();
-        List<Tap> completedTaps = Stream.concat(tapOnEntities1.stream(), tapOnEntities2.stream())
-                .map(this::fillStatusAndCost)
-                .toList();
-        var tapOns = tapRepository.saveAllAndFlush(completedTaps);
-        logger.info("Persisted tapping-on data to DB [{}]", tapOns);
-    }
-
-    List<Tap> createTapOnEntities(List<TapFromFile> taps) {
-        return taps.stream()
-                .filter(tapFromFile -> tapFromFile.tapType() == TapType.ON)
-                .map(this::mapToTapEntityForTapOn)
-                .toList();
-    }
-
-    List<TapFromFile> tapOffsFromTapFromFileList(List<TapFromFile> taps) {
-        return taps.stream()
-                .filter(tapFromFile -> tapFromFile.tapType() == TapType.OFF)
-                .toList();
-    }
-
-    List<TapFromFile> findTapOffForTapOn(List<Tap> tapEntities, List<TapFromFile> tapOffs) {
-        for (Tap tapEntity : tapEntities) {
-            var tapOffOptional = tapOffs.stream()
-                    .filter(tapFromFile -> (Objects.equals(tapFromFile.pan(), tapEntity.getPan())) &&
-                            (Objects.equals(tapFromFile.busId(), tapEntity.getBusId())) &&
-                            (Objects.equals(tapFromFile.companyId(), tapEntity.getBusCompanyId())))
-                    .findFirst();
-            if (tapOffOptional.isPresent()) {
-                var tapOff = tapOffOptional.get();
-                var stop = stopCache.get(tapOff.stopId());
-                tapEntity.setEndStop(stop)
-                        .setEndDateTime(tapOff.timestamp());
-                return findTapOffForTapOn(tapEntities.stream().filter(e -> !e.equals(tapEntity)).toList(),
-                        tapOffs.stream().filter(e -> !e.equals(tapOff)).toList());
-            }
+        // build a cache of tap-ons as they arrive from file's each row
+        Map<TapIdentifierKey, Tap> tapOnCache = new HashMap<>();
+        // build a collection of tap-on-offs
+        List<Tap> tapTripEntities = new ArrayList<>();
+        tapFromFileList
+                .forEach(tapFromFile -> {
+                    var tapIdentifier = mapToTapIdentifierKey(tapFromFile);
+                    if (tapOnCache.containsKey(tapIdentifier)) {
+                        /* if tap-on cache contains the tap row from file then check if the row is tap-off
+                        then add to the collection of tap-on-offs and remove from cache */
+                        var tapEntityFromCache = tapOnCache.get(tapIdentifier);
+                        if (tapFromFile.tapType() == TapType.OFF) {
+                            tapEntityFromCache.setEndStop(stopCache.get(tapFromFile.stopId()))
+                                    .setEndDateTime(tapFromFile.timestamp());
+                            tapTripEntities.add(tapEntityFromCache);
+                            // removed from cache
+                            tapOnCache.remove(tapIdentifier);
+                        }
+                    } else if (tapFromFile.tapType() == TapType.ON) {
+                        /* if the tap row from file is tap on and not present in cache
+                            then add to the cache */
+                        tapOnCache.put(tapIdentifier, mapToTapEntityForTapOn(tapFromFile));
+                    } else if (tapFromFile.tapType() == TapType.OFF) {
+                        /* finding the tap-on in the db table */
+                        var tapOnOffEntity = mapToTapEntityForTapOffFromDb(tapFromFile);
+                        if (tapOnOffEntity == null) {
+                            logger.error("Tap record couldn't find match [{}]", tapFromFile);
+                        } else  {
+                            tapTripEntities.add(tapOnOffEntity);
+                        }
+                    }
+                });
+        if (!tapOnCache.isEmpty()) {
+            tapTripEntities.addAll(tapOnCache.values());
         }
-        return tapOffs;
+        var tapTripsFinalizedInChunk = tapRepository.saveAllAndFlush(tapTripEntities.stream()
+                .map(this::fillStatusAndCost)
+                .toList());
+        logger.info("Persisted tapping-on data to DB [{}]", tapTripsFinalizedInChunk);
+    }
+
+    private Tap mapToTapEntityForTapOffFromDb(TapFromFile tap) {
+        var tapResponse = tapRepository.findByPanAndBusIdAndBusCompanyId(
+                tap.pan(), tap.busId(), tap.companyId()
+        ).stream().findFirst();
+        tapResponse.ifPresent(t -> t.setEndStop(stopCache.get(tap.stopId()))
+                .setEndDateTime(tap.timestamp()));
+        return tapResponse.orElse(null);
+    }
+
+    private TapIdentifierKey mapToTapIdentifierKey(TapFromFile tap) {
+        return new TapIdentifierKey(tap.pan(), tap.companyId(), tap.busId());
     }
 
     private Tap mapToTapEntityForTapOn(TapFromFile tap) {
         return new Tap(
                 tap.pan(), tap.busId(), tap.companyId(), stopCache.get(tap.stopId()), tap.timestamp()
         );
-    }
-
-    private Tap mapToTapEntityForTapOff(TapFromFile tap) {
-        final var tapEntity = tapRepository.findByPanAndBusIdAndBusCompanyId(
-                        tap.pan(), tap.busId(), tap.companyId()
-                )
-                .getFirst();
-        return tapEntity.setEndStop(stopCache.get(tap.stopId()))
-                .setEndDateTime(tap.timestamp());
     }
 
     private Tap fillStatusAndCost(Tap tap) {

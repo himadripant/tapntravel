@@ -31,10 +31,10 @@ class FareCalculationServiceTest {
     @Test
     @DisplayName("calculating the price between two zones")
     void calculateTripFares_betweenTwoZones() {
-        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setZone(1), new Stop().setZone(1)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(2.50))) == 0);
-        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setZone(1), new Stop().setZone(2)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(3.50))) == 0);
-        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setZone(2), new Stop().setZone(1)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(3.50))) == 0);
-        assertTrue(fareCalculationService.calculateTripFares(2, new Stop().setZone(1), new Stop().setZone(3)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(5))) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setId(1).setZone(1), new Stop().setId(2).setZone(1)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(2.50))) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setId(1).setZone(1), new Stop().setId(4).setZone(2)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(3.50))) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setId(4).setZone(2), new Stop().setId(1).setZone(1)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(3.50))) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(2, new Stop().setId(6).setZone(1), new Stop().setId(8).setZone(3)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(5))) == 0);
     }
 
     @Test
@@ -44,5 +44,21 @@ class FareCalculationServiceTest {
         assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setZone(2), null).compareTo(Pair.of(TripStatus.INCOMPLETE, BigDecimal.valueOf(3.75))) == 0);
         assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setZone(3), null).compareTo(Pair.of(TripStatus.INCOMPLETE, BigDecimal.valueOf(5.5))) == 0);
         assertTrue(fareCalculationService.calculateTripFares(2, new Stop().setZone(1), null).compareTo(Pair.of(TripStatus.INCOMPLETE, BigDecimal.valueOf(5))) == 0);
+    }
+
+    @Test
+    @DisplayName("calculating the price between two zones - given db entry exists for only one side")
+    void calculateTripFares_onlyOneSide() {
+        assertTrue(fareCalculationService.calculateTripFares(2, new Stop().setId(7).setZone(2), new Stop().setId(6).setZone(1)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(3.50))) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(2, new Stop().setId(8).setZone(3), new Stop().setId(6).setZone(1)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(5.0))) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(2, new Stop().setId(9).setZone(3), new Stop().setId(7).setZone(2)).compareTo(Pair.of(TripStatus.COMPLETED, BigDecimal.valueOf(3.75))) == 0);
+    }
+
+    @Test
+    @DisplayName("calculating the price when the trip is cancelled")
+    void calculateTripFares_cancelledTrip() {
+        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setId(1).setZone(1), new Stop().setId(1).setZone(1)).compareTo(Pair.of(TripStatus.CANCELLED, BigDecimal.ZERO)) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(1, new Stop().setId(2).setZone(2), new Stop().setId(2).setZone(2)).compareTo(Pair.of(TripStatus.CANCELLED, BigDecimal.ZERO)) == 0);
+        assertTrue(fareCalculationService.calculateTripFares(2, new Stop().setId(7).setZone(2), new Stop().setId(7).setZone(2)).compareTo(Pair.of(TripStatus.CANCELLED, BigDecimal.ZERO)) == 0);
     }
 }

@@ -14,8 +14,9 @@ insert into stop(id, name, bus_company_id, zone) values(5, 'Ballarat', 1, 3);
 -- Bus Stop and Zones for "Buses Australia Company" i.e. bus_company_id = 2
 insert into stop(id, name, bus_company_id, zone) values(6, 'Melbourne William St - Bourke St', 2, 1);
 insert into stop(id, name, bus_company_id, zone) values(7, 'Southbank', 2, 2);
-insert into stop(id, name, bus_company_id, zone) values(8, 'Frankston', 2, 3);
-insert into stop(id, name, bus_company_id, zone) values(9, 'Ballarat', 2, 4);
+insert into stop(id, name, bus_company_id, zone) values(8, 'Seaford', 2, 3);
+insert into stop(id, name, bus_company_id, zone) values(9, 'Frankston', 2, 3);
+insert into stop(id, name, bus_company_id, zone) values(10, 'Ballarat', 2, 4);
 
 insert into zone_fare(id, zone_from, zone_to, bus_company_id, price) values(1, 1, 1, 1, 2.50);
 insert into zone_fare(id, zone_from, zone_to, bus_company_id, price) values(2, 1, 2, 1, 3.50);

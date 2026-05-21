@@ -16,5 +16,5 @@ spring:
       mode: always
 
 app:
-  input-file-path: "/Users/himadripant/hp_works/scrap/taps.csv"
-  output-file-path: "/Users/himadripant/hp_works/scrap/trips.csv"
+  input-file-path: "/Users/johnsmith/hp_works/scrap/taps.csv"
+  output-file-path: "/Users/johnsmith/hp_works/scrap/trips.csv"
